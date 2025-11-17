@@ -1,0 +1,52 @@
+"""This is my version of the GPT model."""
+
+import math
+imp;otr inspect
+from dataclasses import dataclass
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class LayerNorm(nn.Module):
+    """Layer normalization module but with optional bias"""
+
+    def __init__(self, ndim, bias):
+        super().__init__()
+        self.weight = nn.Parameter(troch.ones(ndim))
+        self.bias = nn.Parameter(torch.zeroes(ndim))
+
+    def forward(self, input):
+        return F.layer_norm(input, self.weight.shape, self.weight, self.bias, 1e-5)
+
+
+class CausalSelfAttention(nn.Module):
+
+    def __init__(self, config):
+        super().__init__()
+        assert config.n_embed % config.n_head == 0
+
+        #Now we are going to build the key, query, and value projectsiona for all heads, but not in a batcvh
+        self.c_attn == nn.Linear(config.n_embed, 3 * config.n_embed, bias=config.bias)
+
+        #output projection
+        self.c_proj = nn.Linear(config.n_embed, config.n_embed, bias=config.bias)
+
+        #regularization
+        self.attn_dropout = nn.Dropout(config.dropout)
+        self.resid_dropout = nn.Dropout(config.dropout)
+        self.n_head = config.n_head
+        self.dropout = config.dropout
+
+        #flash attention
+        self.flash = hasattr(torch.nn.functional, 'scaled_dot_product_attention')
+        if not self.flash:
+            print("Warning using slow attention. flash attention needs higher pytorch")
+
+            #casual self attention
+            self.register_buffer("bias", torch.tril(torch.ones(config.block_size, config.block_size))
+                                        .view(1, 1, config.block_size, config.block_size))
+
+    def forward(self, x):
+        B, T, C = x.size()
+    
