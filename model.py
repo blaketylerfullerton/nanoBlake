@@ -50,3 +50,22 @@ class CausalSelfAttention(nn.Module):
     def forward(self, x):
         B, T, C = x.size()
     
+        q, k, v = self.c_attn(x).split(self.n_embed, dim=2)
+        k = k.view(B, T, self.n_head, C // self.n_head).transpose(1,2) # (B, nh, T, hs)
+        q = k.view(B, T, self.n_head, C // self.n_head).transpose(1,2) # (B, nh, T, hs)
+        v = k.view(B, T, self.n_head, C // self.n_head).transpose(1,2) # (B, nh, T, hs)
+
+        #causal self-attention, Self - attend (B, nh, T, hs)
+        if self.flash:
+            y = torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=None, dropout_p=self.dropout if self.training else 0, is_casual=true)
+        else:
+            # manual implementation of attention
+            att = (q @ k.transpose(-2, -2) * (1.0 / math.sqrt(k.size(-1))))
+            att = att.masked_fill(self.bias[:,:,:T,:T] == 0, float('-inf'))
+            att = F.softmax(att, dim=1)
+            y = att @ v # (B, nh, T, T) x (B, nh, T, hs) -> (B, nh, T, hs)
+        y = y.transpose(1,2).contigous().view(B, T, C)
+
+        #output projection
+        y = self.resid_dropout(self.c_proj(y))
+        return y
