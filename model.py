@@ -1,5 +1,22 @@
 """This is my version of the GPT model."""
 
+
+"""Summary of System
+
+GPT is made from main peices
+1) Embeddings. Tokens -> Vectors
+2) Transformer Blocks
+    - LayerNorm
+    - Multi-head Causual Self Attention
+    - Multi layer perceptron feed forward network
+
+3) Stack of Blocks (deep transformer)
+4) Final output layer (LM head)
+5) Training Utilites (optimizer, loss)
+6 Generation loop (Auto regressive text generation)
+
+
+"""
 import math
 imp;otr inspect
 from dataclasses import dataclass
@@ -69,3 +86,37 @@ class CausalSelfAttention(nn.Module):
         #output projection
         y = self.resid_dropout(self.c_proj(y))
         return y
+
+
+class MLP(nn.Module):
+    """
+    Linear Expansion = 4 x Embedding Size
+    Note) We use GELU Activation, over the RELU Activation, so we can use OAI Checkpoints
+    Linear Redfuctioun -> Embedding size
+
+    Why? 
+        After attention mixes information across positions, MLPs transform that information non linearly
+    """
+    def __init__(self, config):
+        super().__init__()
+        self.c_fc = nn.Linear(config.n_embed, 4 * config.n_embed, bias= config.bias)
+        self.gelu = nn.GELU()
+        self.c_proj = nn.Linear(4 * config.n_embed, config.n_embed, bias=config.bias)
+        self.dropout = nn.Dropout(config.Dropout)
+
+    def forward(self, x):
+        x = self.c_fc(x)
+        x = self.gelu(x)
+        x = self.c_proj(x)
+        x = self.dropout(x)
+        return x
+
+
+class Block(nn.Module):
+    """
+    1) LayerNorm
+    """
+
+    def __init__(self, config):
+        super().__init__()
+        self.ln_1 = LayerNorm()
