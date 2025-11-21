@@ -1,0 +1,3 @@
+# Ignore input file and Python virtual environment
+input.txt
+venv/
